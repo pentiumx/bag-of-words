@@ -60,6 +60,8 @@ des_list = []
 count = 0
 for image_path in image_paths:
     im = cv2.imread(image_path)
+    im = cv2.resize(im, (128, 128))
+
     kpts = fea_det.detect(im)
     kpts, des = des_ext.compute(im, kpts)
     #print sys.getsizeof(des)/1000000.0
