@@ -5,12 +5,16 @@ import cv2
 import imutils
 import numpy as np
 import os
+import sys
 from sklearn.svm import LinearSVC
 from sklearn.externals import joblib
 from scipy.cluster.vq import *
 
 # Load the classifier, class names, scaler, number of clusters and vocabulary
-clf, classes_names, stdSlr, k, voc = joblib.load("bof.pkl")
+clf, classes_names, stdSlr, k, voc = joblib.load("bof_newdataset_svc.pkl")
+sys.stdout.flush()
+print classes_names
+sys.stdout.flush()
 
 # Get the path of the testing set
 parser = ap.ArgumentParser()
@@ -56,7 +60,7 @@ des_ext = cv2.DescriptorExtractor_create("SIFT")
 # List where all the descriptors are stored
 des_list = []
 
-for image_path in image_paths[:10]:
+for idx, image_path in enumerate(image_paths):
     im = cv2.imread(image_path)
     if im == None:
         print "No such file {}\nCheck if the file exists".format(image_path)
@@ -65,21 +69,26 @@ for image_path in image_paths[:10]:
     kpts, des = des_ext.compute(im, kpts)
     des_list.append((image_path, des))
 
+    if idx % 100 == 0:
+	sys.stdout.flush()
+	print idx
+	sys.stdout.flush()
+
 # Stack all the descriptors vertically in a numpy array
 descriptors = des_list[0][1]
 for image_path, descriptor in des_list[0:]:
     descriptors = np.vstack((descriptors, descriptor))
 
 #
-test_features = np.zeros((len(image_paths[:10]), k), "float32")
-for i in xrange(len(image_paths[:10])):
+test_features = np.zeros((len(image_paths), k), "float32")
+for i in xrange(len(image_paths)):
     words, distance = vq(des_list[i][1],voc)
     for w in words:
         test_features[i][w] += 1
 
 # Perform Tf-Idf vectorization
 nbr_occurences = np.sum( (test_features > 0) * 1, axis = 0)
-idf = np.array(np.log((1.0*len(image_paths[:10])+1) / (1.0*nbr_occurences + 1)), 'float32')
+idf = np.array(np.log((1.0*len(image_paths)+1) / (1.0*nbr_occurences + 1)), 'float32')
 
 # Scale the features
 test_features = stdSlr.transform(test_features)
@@ -95,11 +104,13 @@ for idx, prediction in enumerate(predictions):
     if prediction == answers[idx]:
         accuracy += 1
 accuracy /= len(predictions)*1.0
+sys.stdout.flush()
 print accuracy
+sys.stdout.flush()
 
 # Visualize the results, if "visualize" flag set to true by the user
 if args["visualize"]:
-    for image_path, prediction in zip(image_paths[:10], predictions):
+    for image_path, prediction in zip(image_paths, predictions):
         image = cv2.imread(image_path)
         cv2.namedWindow("Image", cv2.WINDOW_NORMAL)
         pt = (0, 3 * image.shape[0] // 4)

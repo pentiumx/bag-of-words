@@ -6,10 +6,17 @@ import imutils
 import numpy as np
 import sys
 import os
-from sklearn.svm import LinearSVC
+from sklearn import svm, grid_search
+from sklearn.svm import LinearSVC, SVC
 from sklearn.externals import joblib
 from scipy.cluster.vq import *
 from sklearn.preprocessing import StandardScaler
+
+# test
+#parameters = {'kernel':('linear', 'rbf'), 'C':[1, 10, 100, 1000]}
+#svr=SVC()
+#clf = grid_search.GridSearchCV(svr, parameters)
+#test
 
 # Get the path of the training set
 parser = ap.ArgumentParser()
@@ -44,10 +51,15 @@ for line in lines:
     tmp = line.split()
     image_paths.append(tmp[0])
     image_classes.append(int(tmp[1]))
+sys.stdout.flush()
 print image_paths[0]
+sys.stdout.flush()
 print image_classes[0]
+sys.stdout.flush()
 print len(image_paths)
+sys.stdout.flush()
 print len(image_classes)
+sys.stdout.flush()
 
 # Create feature extraction and keypoint detector objects
 fea_det = cv2.FeatureDetector_create("SIFT")
@@ -68,7 +80,9 @@ for image_path in image_paths:
     des_list.append((image_path, des))
 
     if count % 100 == 0:
+	sys.stdout.flush()
         print  count
+	sys.stdout.flush()
     count += 1
 
 # Stack all the descriptors vertically in a numpy array
@@ -77,8 +91,19 @@ count = 0
 for image_path, descriptor in des_list[1:]:
     descriptors = np.vstack((descriptors, descriptor))
     if count % 1000 == 0:
+	sys.stdout.flush()
         print  count
+	sys.stdout.flush()
     count += 1
+sys.stdout.flush()
+print type(descriptors)
+sys.stdout.flush()
+print len(descriptors)
+sys.stdout.flush()
+print descriptors.shape
+sys.stdout.flush()
+print descriptors[0]
+sys.stdout.flush()
 
 # Perform k-means clustering
 k = 100
@@ -100,10 +125,14 @@ stdSlr = StandardScaler().fit(im_features)
 im_features = stdSlr.transform(im_features)
 
 # Train the Linear SVM
-clf = LinearSVC()
+#clf = LinearSVC()
+#clf = SVC()
+parameters = {'kernel':('linear', 'rbf'), 'C':[1, 10, 100, 1000]}
+svr=SVC()
+clf = grid_search.GridSearchCV(svr, parameters)
 clf.fit(im_features, np.array(image_classes))
 
 # Save the SVM
 #joblib.dump((clf, training_names, stdSlr, k, voc), "bof.pkl", compress=3)
-joblib.dump((clf, image_classes, stdSlr, k, voc), "bof.pkl", compress=3)
+joblib.dump((clf, image_classes, stdSlr, k, voc), "bof_newdataset_svc.pkl", compress=3)
 
